@@ -1,6 +1,6 @@
 package com.example.delivery.entity;
 
-public enum Role
+public enum RoleEnum
 {
     COURIER, CUSTOMER
 }
