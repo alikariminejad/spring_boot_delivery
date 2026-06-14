@@ -2,13 +2,11 @@ package com.delivery.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
@@ -18,7 +16,7 @@ import java.util.Map;
 public class JwtService {
 
     @Value("${app.jwt.secret}")
-    private String secret;
+    private String secretKey;
 
     @Value("${app.jwt.expiration}")
     private long expiration;
@@ -28,7 +26,11 @@ public class JwtService {
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
-        return Jwts.builder().claims(extraClaims).subject(userDetails.getUsername()).issuedAt(new Date(System.currentTimeMillis())).expiration(new Date(System.currentTimeMillis() + expiration))
+        return Jwts.builder()
+                .claims(extraClaims)
+                .subject(userDetails.getUsername())
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey()).compact();
     }
 
@@ -46,14 +48,14 @@ public class JwtService {
     }
 
     private Date extractExpiration(String token) {
-        // TO DO: از extractAllClaims و getExpiration
+        return extractAllClaims(token).getExpiration();
     }
 
     private Claims extractAllClaims(String token) {
-        // TO DO: با Jwts.parser().verifyWith(...).build().parseSignedClaims(token).getPayload()
+        return Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
     }
 
     private SecretKey getSigningKey() {
-        // TO DO: با Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret))
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey));
     }
 }
