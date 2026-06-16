@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,11 +28,11 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest registerRequest){
         String username = registerRequest.getUsername();
-        if(userRepository.findByUsername(username) != null){
+        if(userRepository.findByUsername(username).isPresent()){
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists!");
         }
         String email = registerRequest.getEmail();
-        if(userRepository.findByEmail(email) != null){
+        if(userRepository.findByEmail(email).isPresent()){
             throw new RuntimeException("Email already exists!");
         }
         String pass = registerRequest.getPassword();
@@ -57,9 +58,10 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request){
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword());
-        UserDetails userDetails = (UserDetails) authenticationManager.authenticate(authenticationToken);
+        Authentication authentication = authenticationManager.authenticate(authenticationToken);
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String token = jwtService.generateToken(userDetails);
-        String role = userDetails.getAuthorities().toString().substring(7);
+        String role = userDetails.getAuthorities().iterator().next().getAuthority().substring(5);
         return new AuthResponse(token, userDetails.getUsername(), role);
     }
 }

@@ -50,3 +50,12 @@ management:
   endpoint:
     health:
       show-details: always
+
+  #===========================================
+  # Logging Settings
+  #===========================================
+logging:
+  level:
+    org:
+      springframework:
+        security: TRACE

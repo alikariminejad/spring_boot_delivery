@@ -27,6 +27,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        System.out.println("######## SECURITY CONFIG LOADED ########");
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -35,6 +36,7 @@ public class SecurityConfig {
                                         .requestMatchers("/actuator/**").permitAll()
                                         .requestMatchers("/swagger-ui/**").permitAll()
                                         .requestMatchers("/v3/api-docs/**").permitAll()
+                                         .requestMatchers("/error").permitAll()
                                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
