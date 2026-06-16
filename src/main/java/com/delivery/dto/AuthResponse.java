@@ -1,12 +1,11 @@
 package com.delivery.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
+@Getter
 @Builder
-@Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class AuthResponse {
     private String token;
     private String username;

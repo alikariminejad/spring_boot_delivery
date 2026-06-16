@@ -11,7 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -21,9 +23,9 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final SecurityConfig securityConfig;
+    private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final UserDetailsServiceImpl userDetailsService;
+    private final UserDetailsService userDetailsService;
     private final AuthenticationManager authenticationManager;
 
     public AuthResponse register(RegisterRequest registerRequest){
@@ -33,11 +35,10 @@ public class AuthService {
         }
         String email = registerRequest.getEmail();
         if(userRepository.findByEmail(email).isPresent()){
-            throw new RuntimeException("Email already exists!");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
         String pass = registerRequest.getPassword();
-        PasswordEncoder encoder = securityConfig.passwordEncoder();
-        String encodedPass = encoder.encode(pass);
+        String encodedPass = passwordEncoder.encode(pass);
 
         User user = new User();
         user.setUsername(username);
@@ -58,10 +59,14 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request){
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword());
-        Authentication authentication = authenticationManager.authenticate(authenticationToken);
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String token = jwtService.generateToken(userDetails);
-        String role = userDetails.getAuthorities().iterator().next().getAuthority().substring(5);
-        return new AuthResponse(token, userDetails.getUsername(), role);
+        try {
+            Authentication authentication = authenticationManager.authenticate(authenticationToken);
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            String token = jwtService.generateToken(userDetails);
+            String role = userDetails.getAuthorities().iterator().next().getAuthority().substring(5);
+            return new AuthResponse(token, userDetails.getUsername(), role);
+        }catch (AuthenticationException e){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+        }
     }
 }
