@@ -5,7 +5,10 @@ import com.delivery.dto.OrderResponse;
 import com.delivery.user.User;
 import com.delivery.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -57,5 +60,25 @@ public class OrderService {
                 savedOrder.getDimensions(),
                 savedOrder.getDescription(),
                 savedOrder.getCreatedAt());
+    }
+
+    public Page<OrderResponse> getCustomerOrders(String username, OrderStatus statusFilter, Pageable pageable){
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Username doesn't exist :/"));
+        Page<Order> orders = (statusFilter != null)
+                ? orderRepository.findByCustomerAndStatus(user, statusFilter, pageable)
+                : orderRepository.findByCustomer(user, pageable);
+        return orders.map(
+                order -> new OrderResponse(
+                        order.getId(),
+                        order.getStatus().name(),
+                        order.getPrice(),
+                        order.getOrigin(),
+                        order.getDestination(),
+                        order.getWeight(),
+                        order.getDimensions(),
+                        order.getDescription(),
+                        order.getCreatedAt())
+        );
     }
 }
