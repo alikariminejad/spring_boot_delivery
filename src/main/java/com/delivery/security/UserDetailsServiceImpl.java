@@ -2,11 +2,12 @@ package com.delivery.security;
 
 import com.delivery.user.User;
 import com.delivery.user.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -20,11 +21,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username) throws ResponseStatusException {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"User not found: " + username));
         if (user.getDeleted()) {
-            throw new UsernameNotFoundException("User is deactivated");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,"User is deactivated");
         }
 
         return new org.springframework.security.core.userdetails.User(
