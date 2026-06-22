@@ -3,7 +3,6 @@ package com.delivery.security;
 import com.delivery.dto.AuthResponse;
 import com.delivery.dto.LoginRequest;
 import com.delivery.dto.RegisterRequest;
-import com.delivery.dto.WalletResponse;
 import com.delivery.user.Role;
 import com.delivery.user.User;
 import com.delivery.user.UserRepository;

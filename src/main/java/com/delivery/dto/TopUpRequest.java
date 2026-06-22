@@ -12,7 +12,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TopUpRequest {
-
     @NotNull @Positive
     private BigDecimal amount;
 }
