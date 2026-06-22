@@ -2,6 +2,7 @@ package com.delivery.wallet;
 
 import com.delivery.dto.TopUpRequest;
 import com.delivery.dto.WalletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,7 +26,8 @@ public class WalletController {
     }
 
     @PostMapping("/topup")
-    public ResponseEntity<WalletResponse> topUpWallet(@RequestBody TopUpRequest topUpRequest,
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<WalletResponse> topUpWallet(@RequestBody @Valid  TopUpRequest topUpRequest,
                                                       @AuthenticationPrincipal UserDetails userDetails){
         String username = userDetails.getUsername();
         WalletResponse wallet = walletService.topUp(username, topUpRequest.getAmount());

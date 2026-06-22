@@ -21,7 +21,6 @@ public class WalletService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
-    private final OrderRepository orderRepository;
 
     public WalletResponse getMyWallet(String username){
         User user = userRepository.findByUsername(username)
@@ -46,7 +45,7 @@ public class WalletService {
         walletRepository.save(wallet);
 
         Transaction transaction = new Transaction();
-        transaction.setType(TransactionType.DEPOSIT.toString());
+        transaction.setType(TransactionType.DEPOSIT);
         transaction.setWalletId(wallet.getId());
         transaction.setAmount(amount);
         transaction.setDescription("Wallet top-up");
@@ -54,7 +53,7 @@ public class WalletService {
 
         return new WalletResponse(
                 wallet.getId(),
-                wallet.getBalance().add(amount),
+                wallet.getBalance(),
                 username
         );
     }
@@ -62,23 +61,21 @@ public class WalletService {
     @Transactional
     public void processPayment(User customer, BigDecimal amount, UUID orderId, String description){
         Wallet wallet = walletRepository.findByUser(customer)
-                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet for this customer not found: " + customer.getUsername()));
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet not found"));
 
         if(wallet.getBalance().compareTo(amount) < 0){
             throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED, "Insufficient balance");
         }
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order with this id: " + orderId+ " not found"));
-
         wallet.setBalance(wallet.getBalance().subtract(amount));
         walletRepository.save(wallet);
 
         Transaction transaction = new Transaction();
-        transaction.setType(TransactionType.PAYMENT.toString());
+        transaction.setWalletId(wallet.getId());
+        transaction.setAmount(amount);
+        transaction.setType(TransactionType.PAYMENT);
         transaction.setReferenceType("ORDER_PAYMENT");
         transaction.setReferenceId(orderId);
-        transaction.setDescription("Payment Processed");
-        transaction.setAmount(order.getPrice());
+        transaction.setDescription(description);
         transactionRepository.save(transaction);
     }
 }
