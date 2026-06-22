@@ -15,6 +15,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
@@ -39,6 +41,24 @@ public class OrderController {
             ){
         Page<OrderResponse> orders = orderService.getCustomerOrders(userDetails.getUsername(), status, pageable);
         return new ResponseEntity<Page<OrderResponse>>(orders, HttpStatus.OK);
+    }
+
+    @GetMapping("/{orderId}")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<OrderResponse> getOrder(@AuthenticationPrincipal UserDetails userDetails,
+                                                  @PathVariable UUID orderId){
+        String username = userDetails.getUsername();
+        OrderResponse order = orderService.getOrderById(orderId, username);
+        return ResponseEntity.ok(order);
+    }
+
+    @PatchMapping("/{orderId}/cancel")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<OrderResponse> cancelOrder(@AuthenticationPrincipal UserDetails userDetails,
+                                                     @PathVariable UUID orderId){
+        String username = userDetails.getUsername();
+        OrderResponse order = orderService.cancelOrder(orderId, username);
+        return ResponseEntity.ok(order);
     }
 
 }

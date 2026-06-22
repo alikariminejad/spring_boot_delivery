@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -49,16 +51,7 @@ public class OrderService {
         orderStatusHistory.setNote("Order placed");
         orderStatusHistoryRepository.save(orderStatusHistory);
 
-        return new OrderResponse(
-                savedOrder.getId(),
-                savedOrder.getStatus().name(),
-                savedOrder.getPrice(),
-                savedOrder.getOrigin(),
-                savedOrder.getDestination(),
-                savedOrder.getWeight(),
-                savedOrder.getDimensions(),
-                savedOrder.getDescription(),
-                savedOrder.getCreatedAt());
+        return mapToResponse(savedOrder);
     }
 
     public Page<OrderResponse> getCustomerOrders(String username, OrderStatus statusFilter, Pageable pageable){
@@ -67,17 +60,58 @@ public class OrderService {
         Page<Order> orders = (statusFilter != null)
                 ? orderRepository.findByCustomerAndStatus(user, statusFilter, pageable)
                 : orderRepository.findByCustomer(user, pageable);
-        return orders.map(
-                order -> new OrderResponse(
-                        order.getId(),
-                        order.getStatus().name(),
-                        order.getPrice(),
-                        order.getOrigin(),
-                        order.getDestination(),
-                        order.getWeight(),
-                        order.getDimensions(),
-                        order.getDescription(),
-                        order.getCreatedAt())
+        return orders.map(order -> mapToResponse(order));
+    }
+
+    public OrderResponse getOrderById(UUID orderId, String username) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "Order with this id: " + orderId + " not found"));
+
+        if(!order.getCustomer().getUsername().equals(username)){
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to access this order");
+        }
+
+        return mapToResponse(order);
+    }
+
+    public OrderResponse cancelOrder(UUID orderId, String username) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order with this id: " + orderId + " not found"));
+
+        if(!order.getCustomer().getUsername().equals(username)){
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to cancel this order");
+        }
+
+        if(order.getStatus() != OrderStatus.PENDING){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Order can only be cancelled when PENDING");
+        }
+
+        order.setStatus(OrderStatus.CANCELED);
+        Order cancelledOrder = orderRepository.save(order);
+
+        OrderStatusHistory orderStatusHistory = new OrderStatusHistory();
+        orderStatusHistory.setOrderId(orderId);
+        orderStatusHistory.setFromStatus(OrderStatus.PENDING);
+        orderStatusHistory.setToStatus(OrderStatus.CANCELED);
+        orderStatusHistory.setChangedByUserId(order.getCustomer().getId());
+        orderStatusHistory.setNote("Order canceled by user");
+        orderStatusHistoryRepository.save(orderStatusHistory);
+
+        return mapToResponse(cancelledOrder);
+    }
+
+    private OrderResponse mapToResponse(Order order){
+        return new OrderResponse(
+                order.getId(),
+                order.getStatus().toString(),
+                order.getPrice(),
+                order.getOrigin(),
+                order.getDestination(),
+                order.getWeight(),
+                order.getDimensions(),
+                order.getDescription(),
+                order.getCreatedAt()
         );
     }
 }
