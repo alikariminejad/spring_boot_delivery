@@ -1,6 +1,7 @@
 package com.delivery.user;
 
 import com.delivery.common.BaseEntity;
+import com.delivery.wallet.Wallet;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,4 +28,6 @@ public class User extends BaseEntity {
     private Role role;
     @Column(name = "is_enabled", nullable = false)
     private Boolean isEnabled = true;
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, optional = false)
+    private Wallet wallet;
 }

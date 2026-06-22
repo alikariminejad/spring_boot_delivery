@@ -4,6 +4,8 @@ import com.delivery.dto.CreateOrderRequest;
 import com.delivery.dto.OrderResponse;
 import com.delivery.user.User;
 import com.delivery.user.UserRepository;
+import com.delivery.wallet.WalletService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,8 +24,10 @@ public class OrderService {
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
+    private final WalletService walletService;
 
 
+    @Transactional
     public OrderResponse createOrder(CreateOrderRequest request, String username){
         User user = userRepository.findByUsername(username)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Username doesn't exist :/"));
@@ -42,6 +46,9 @@ public class OrderService {
         order.setPrice(price);
         order.setStatus(OrderStatus.PENDING);
         Order savedOrder = orderRepository.save(order);
+
+        walletService.processPayment(user, price, savedOrder.getId(), "Payment for order");
+
 
         OrderStatusHistory orderStatusHistory = new OrderStatusHistory();
         orderStatusHistory.setOrderId(savedOrder.getId());
