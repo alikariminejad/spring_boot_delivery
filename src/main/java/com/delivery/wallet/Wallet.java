@@ -8,11 +8,12 @@ import lombok.*;
 import java.math.BigDecimal;
 
 
+@Entity
+@Table(name = "wallets")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
 public class Wallet extends BaseEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", unique = true, nullable = false)
