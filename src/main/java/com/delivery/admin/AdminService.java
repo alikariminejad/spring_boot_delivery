@@ -36,8 +36,8 @@ public class AdminService {
         user.setUsername(username);
         user.setEmail(email);
         user.setFirstName(request.getFirstName());
-        user.setUsername(request.getLastName());
-        user.setPhoneNumber(request.getPhoneNubmer());
+        user.setLastName(request.getLastName());
+        user.setPhoneNumber(request.getPhoneNumber());
         Role role = request.getRole();
         user.setRole(role);
         user.setIsEnabled(true);

@@ -34,7 +34,7 @@ public class CreateUserRequest {
     private String lastName;
 
     @Size(max = 20)
-    private String phoneNubmer;
+    private String phoneNumber;
 
     @NotNull
     private Role role;

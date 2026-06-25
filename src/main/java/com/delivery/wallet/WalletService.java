@@ -85,10 +85,12 @@ public class WalletService {
         walletRepository.save(wallet);
 
         Transaction transaction = new Transaction();
+        transaction.setWalletId(wallet.getId());
         transaction.setType(TransactionType.COURIER_EARNING);
         transaction.setReferenceType("ORDER_DELIVERY");
         transaction.setReferenceId(orderId);
         transaction.setAmount(amount);
+        transaction.setDescription("Commission for order delivery");
         transactionRepository.save(transaction);
     }
 }

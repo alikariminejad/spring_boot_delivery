@@ -1,5 +1,6 @@
 package com.delivery.controller;
 
+import com.delivery.dto.OrderResponse;
 import com.delivery.order.Order;
 import com.delivery.order.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -16,16 +17,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/courier")
-@PreAuthorize("hasRole('COURIER)")
+@PreAuthorize("hasRole('COURIER')")
 @RequiredArgsConstructor
 public class CourierController {
 
     private final OrderService orderService;
 
     @GetMapping("/orders")
-    public ResponseEntity<Page<Order>> getMyAssignedOrders(@AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<Page<OrderResponse>> getMyAssignedOrders(@AuthenticationPrincipal UserDetails userDetails,
                                                            Pageable pageable){
-        Page<Order> orders = orderService.getCourierOrders(userDetails.getUsername(), pageable);
-        return new ResponseEntity<Page<Order>>(orders, HttpStatus.OK);
+        Page<OrderResponse> orders = orderService.getCourierOrders(userDetails.getUsername(), pageable);
+        return new ResponseEntity<Page<OrderResponse>>(orders, HttpStatus.OK);
     }
 }

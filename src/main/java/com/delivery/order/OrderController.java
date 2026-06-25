@@ -71,7 +71,7 @@ public class OrderController {
     }
 
     @PutMapping("/{orderId}/reject")
-    @PreAuthorize("hasRole('COURIER)")
+    @PreAuthorize("hasRole('COURIER')")
     public ResponseEntity<OrderResponse> rejectOrder(@AuthenticationPrincipal UserDetails userDetails,
                                                      @PathVariable UUID orderId){
         OrderResponse order = orderService.rejectOrder(orderId, userDetails.getUsername());

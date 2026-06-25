@@ -165,11 +165,14 @@ public class OrderService {
         orderRepository.save(order);
 
         OrderStatusHistory orderStatusHistory = new OrderStatusHistory();
+        orderStatusHistory.setOrderId(orderId);
         orderStatusHistory.setFromStatus(OrderStatus.PENDING);
         orderStatusHistory.setToStatus(OrderStatus.ASSIGNED);
         User admin = userRepository.findByUsername(performedByUsername)
                         .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "Admin not found with this name: "+ performedByUsername));
         orderStatusHistory.setChangedByUserId(admin.getId());
+        orderStatusHistoryRepository.save(orderStatusHistory);
+
         return mapToResponse(order);
     }
 
@@ -187,12 +190,14 @@ public class OrderService {
         orderRepository.save(order);
 
         OrderStatusHistory orderStatusHistory = new OrderStatusHistory();
-
+        orderStatusHistory.setOrderId(orderId);
         orderStatusHistory.setFromStatus(OrderStatus.ASSIGNED);
         orderStatusHistory.setToStatus(OrderStatus.CONFIRMED);
         User courier = userRepository.findByUsername(courierUsername)
                         .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Courier was not found"));
         orderStatusHistory.setChangedByUserId(courier.getId());
+        orderStatusHistoryRepository.save(orderStatusHistory);
+
         return mapToResponse(order);
     }
 
@@ -213,12 +218,13 @@ public class OrderService {
         orderRepository.save(order);
 
         OrderStatusHistory orderStatusHistory = new OrderStatusHistory();
-
+        orderStatusHistory.setOrderId(orderId);
         orderStatusHistory.setFromStatus(OrderStatus.ASSIGNED);
         orderStatusHistory.setToStatus(OrderStatus.PENDING);
         User courier = userRepository.findByUsername(courierUsername)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Courier was not found"));
         orderStatusHistory.setChangedByUserId(courier.getId());
+        orderStatusHistoryRepository.save(orderStatusHistory);
 
         return mapToResponse(order);
     }
@@ -230,7 +236,9 @@ public class OrderService {
         if(!order.getCourier().getUsername().equals(courierUsername)){
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This order's courier name is not "+ courierUsername);
         }
+        OrderStatus oldStatus = order.getStatus();
         validateTransition(order, newStatus);
+        order.setStatus(newStatus);
 
         if(newStatus== OrderStatus.DELIVERED){
             BigDecimal commission = order.getPrice().multiply(BigDecimal.valueOf(0.8));
@@ -239,18 +247,21 @@ public class OrderService {
         orderRepository.save(order);
 
         OrderStatusHistory orderStatusHistory = new OrderStatusHistory();
-        orderStatusHistory.setFromStatus(order.getStatus());
+        orderStatusHistory.setOrderId(orderId);
+        orderStatusHistory.setFromStatus(oldStatus);
         orderStatusHistory.setToStatus(newStatus);
         User courier = userRepository.findByUsername(courierUsername)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Courier with this name: " + courierUsername +" was not found"));
         orderStatusHistory.setChangedByUserId(courier.getId());
+        orderStatusHistoryRepository.save(orderStatusHistory);
 
         return mapToResponse(order);
     }
 
-    public Page<Order> getCourierOrders(String username, Pageable pageable) {
+    public Page<OrderResponse> getCourierOrders(String username, Pageable pageable) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "User with this username: " + username + " wasn't found"));
-        return orderRepository.findByCourier(user, pageable);
+                .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        Page<Order> orders=  orderRepository.findByCourier(user, pageable);
+        return orders.map(this::mapToResponse);
     }
 }
