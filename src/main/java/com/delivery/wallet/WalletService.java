@@ -1,8 +1,6 @@
 package com.delivery.wallet;
 
 import com.delivery.dto.WalletResponse;
-import com.delivery.order.Order;
-import com.delivery.order.OrderRepository;
 import com.delivery.user.User;
 import com.delivery.user.UserRepository;
 import jakarta.transaction.Transactional;
@@ -76,6 +74,21 @@ public class WalletService {
         transaction.setReferenceType("ORDER_PAYMENT");
         transaction.setReferenceId(orderId);
         transaction.setDescription(description);
+        transactionRepository.save(transaction);
+    }
+
+    @Transactional
+    public void creditCourier(User courier, BigDecimal amount, UUID orderId){
+        Wallet wallet = walletRepository.findByUser(courier)
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "This courier doesn't have a wallet"));
+        wallet.setBalance(wallet.getBalance().add(amount));
+        walletRepository.save(wallet);
+
+        Transaction transaction = new Transaction();
+        transaction.setType(TransactionType.COURIER_EARNING);
+        transaction.setReferenceType("ORDER_DELIVERY");
+        transaction.setReferenceId(orderId);
+        transaction.setAmount(amount);
         transactionRepository.save(transaction);
     }
 }

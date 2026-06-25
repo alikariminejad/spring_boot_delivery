@@ -2,6 +2,7 @@ package com.delivery.order;
 
 import com.delivery.dto.CreateOrderRequest;
 import com.delivery.dto.OrderResponse;
+import com.delivery.dto.UpdateOrderStatusRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -61,4 +62,27 @@ public class OrderController {
         return ResponseEntity.ok(order);
     }
 
+    @PutMapping("/{orderId}/accept")
+    @PreAuthorize("hasRole('COURIER')")
+    public ResponseEntity<OrderResponse> acceptOrder(@AuthenticationPrincipal UserDetails userDetails,
+                                                     @PathVariable UUID orderId){
+        OrderResponse order = orderService.acceptOrder(orderId, userDetails.getUsername());
+        return ResponseEntity.ok(order);
+    }
+
+    @PutMapping("/{orderId}/reject")
+    @PreAuthorize("hasRole('COURIER)")
+    public ResponseEntity<OrderResponse> rejectOrder(@AuthenticationPrincipal UserDetails userDetails,
+                                                     @PathVariable UUID orderId){
+        OrderResponse order = orderService.rejectOrder(orderId, userDetails.getUsername());
+        return ResponseEntity.ok(order);
+    }
+
+    @PutMapping("/{orderId}/status")
+    @PreAuthorize("hasRole('COURIER')")
+    public ResponseEntity<OrderResponse> updateStatus(@PathVariable UUID orderId, @Valid @RequestBody UpdateOrderStatusRequest request,
+                                                      @AuthenticationPrincipal UserDetails userDetails){
+        OrderResponse order =orderService.updateOrderStatus(orderId, request.getNewStatus(), userDetails.getUsername());
+        return ResponseEntity.ok(order);
+    }
 }
