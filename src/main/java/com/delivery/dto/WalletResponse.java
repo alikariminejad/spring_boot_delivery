@@ -13,5 +13,7 @@ import java.util.UUID;
 public class WalletResponse {
     private UUID walletId;
     private BigDecimal balance;
+    private BigDecimal blockedBalance;
+    private BigDecimal availableBalance;
     private String ownerUsername;
 }

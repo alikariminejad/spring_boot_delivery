@@ -28,6 +28,8 @@ public class WalletService {
         return new WalletResponse(
                 wallet.getId(),
                 wallet.getBalance(),
+                wallet.getBlockedBalance(),
+                wallet.getBalance().subtract(wallet.getBlockedBalance()),
                 username
         );
     }
@@ -52,6 +54,8 @@ public class WalletService {
         return new WalletResponse(
                 wallet.getId(),
                 wallet.getBalance(),
+                wallet.getBlockedBalance(),
+                wallet.getBalance().subtract(wallet.getBlockedBalance()),
                 username
         );
     }
@@ -60,9 +64,9 @@ public class WalletService {
     public void processPayment(User customer, BigDecimal amount, UUID orderId, String description){
         Wallet wallet = walletRepository.findByUser(customer)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet not found"));
-
-        if(wallet.getBalance().compareTo(amount) < 0){
-            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED, "Insufficient balance");
+        BigDecimal available = wallet.getBalance().subtract(wallet.getBlockedBalance());
+        if(available.compareTo(amount) < 0){
+            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED, "Insufficient available balance");
         }
         wallet.setBalance(wallet.getBalance().subtract(amount));
         walletRepository.save(wallet);
@@ -91,6 +95,64 @@ public class WalletService {
         transaction.setReferenceId(orderId);
         transaction.setAmount(amount);
         transaction.setDescription("Commission for order delivery");
+        transactionRepository.save(transaction);
+    }
+
+    @Transactional
+    public void blockFunds(UUID walletId, BigDecimal amount, UUID settlementId){
+        Wallet wallet = walletRepository.findById(walletId)
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet was not found"));
+        wallet.setBlockedBalance(wallet.getBlockedBalance().add(amount));
+        walletRepository.save(wallet);
+
+        Transaction transaction = new Transaction();
+        transaction.setWalletId(wallet.getId());
+        transaction.setType(TransactionType.BLOCKED);
+        transaction.setReferenceType("SETTLEMENT_HOLD");
+        transaction.setReferenceId(settlementId);
+        transaction.setAmount(amount);
+        transaction.setDescription("Funds blocked for settlement request");
+        transactionRepository.save(transaction);
+    }
+
+    @Transactional
+    public void unblockFunds(UUID walletId, BigDecimal amount, UUID settlementId){
+        Wallet wallet = walletRepository.findById(walletId)
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet was not found"));
+        if(wallet.getBlockedBalance().compareTo(amount)<0){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "There are not enough blocked balance");
+        }
+        wallet.setBlockedBalance(wallet.getBlockedBalance().subtract(amount));
+        walletRepository.save(wallet);
+
+        Transaction transaction = new Transaction();
+        transaction.setWalletId(wallet.getId());
+        transaction.setType(TransactionType.UNBLOCKED);
+        transaction.setReferenceType("SETTLEMENT_RELEASE");
+        transaction.setReferenceId(settlementId);
+        transaction.setAmount(amount);
+        transaction.setDescription("Funds released for settlement request");
+        transactionRepository.save(transaction);
+    }
+
+    @Transactional
+    public void deductSettlement(UUID walletId, BigDecimal amount, UUID settlementId){
+        Wallet wallet = walletRepository.findById(walletId)
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet was not found"));
+        if(wallet.getBlockedBalance().compareTo(amount)<0 || wallet.getBalance().compareTo(amount)<0){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "There are not enough balance");
+        }
+        wallet.setBalance(wallet.getBalance().subtract(amount));
+        wallet.setBlockedBalance(wallet.getBlockedBalance().subtract(amount));
+        walletRepository.save(wallet);
+
+        Transaction transaction = new Transaction();
+        transaction.setWalletId(wallet.getId());
+        transaction.setType(TransactionType.WITHDRAWAL);
+        transaction.setReferenceType("SETTLEMENT");
+        transaction.setReferenceId(settlementId);
+        transaction.setAmount(amount);
+        transaction.setDescription("Funds subtracted from balance and blocked balance for settlement request");
         transactionRepository.save(transaction);
     }
 }

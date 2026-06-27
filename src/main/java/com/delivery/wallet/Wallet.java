@@ -23,5 +23,6 @@ public class Wallet extends BaseEntity {
     private BigDecimal balance = BigDecimal.ZERO;
 
 
-
+    @Column(precision = 12, scale = 2, nullable = false)
+    private BigDecimal blockedBalance = BigDecimal.ZERO;
 }
