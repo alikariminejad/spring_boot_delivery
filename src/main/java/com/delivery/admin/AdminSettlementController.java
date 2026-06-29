@@ -37,7 +37,7 @@ public class AdminSettlementController {
     }
 
     @PutMapping("/{id}/reject")
-    public ResponseEntity<SettlementRequestResponse> rejectRequest(@PathVariable UUID id, @RequestBody(required = false) @Valid RejectSettlementRequest req,
+    public ResponseEntity<SettlementRequestResponse> rejectRequest(@PathVariable UUID id, @RequestBody @Valid RejectSettlementRequest req,
                                                                    @AuthenticationPrincipal UserDetails admin){
         SettlementRequestResponse requestResponse = settlementService.rejectRequest(id, admin.getUsername(), req.getNote());
         return new ResponseEntity<SettlementRequestResponse>(requestResponse, HttpStatus.OK);

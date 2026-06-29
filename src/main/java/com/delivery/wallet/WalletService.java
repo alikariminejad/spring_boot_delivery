@@ -140,7 +140,7 @@ public class WalletService {
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet was not found"));
         if(wallet.getBlockedBalance().compareTo(amount)<0 || wallet.getBalance().compareTo(amount)<0){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "There are not enough balance");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient balance or blocked amount");
         }
         wallet.setBalance(wallet.getBalance().subtract(amount));
         wallet.setBlockedBalance(wallet.getBlockedBalance().subtract(amount));

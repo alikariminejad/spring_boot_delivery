@@ -6,6 +6,7 @@ import com.delivery.user.UserRepository;
 import com.delivery.wallet.Wallet;
 import com.delivery.wallet.WalletRepository;
 import com.delivery.wallet.WalletService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +26,7 @@ public class SettlementService {
     private final WalletRepository walletRepository;
     private final WalletService walletService;
 
+    @Transactional
     public SettlementRequestResponse createRequest(String courierUsername, BigDecimal amount){
         User courier = userRepository.findByUsername(courierUsername)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "Courier name was not found"));
@@ -43,7 +45,7 @@ public class SettlementService {
         return mapToResponse(savedReq);
     }
 
-
+    @Transactional
     public SettlementRequestResponse cancelRequest(UUID requestId, String courierUsername){
         SettlementRequest req = settlementRequestRepository.findById(requestId)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "Settlement request not found"));
@@ -60,6 +62,7 @@ public class SettlementService {
         return mapToResponse(savedReq);
     }
 
+    @Transactional
     public SettlementRequestResponse approveRequest(UUID requestId, String adminUsername){
         SettlementRequest req = settlementRequestRepository.findById(requestId)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "Settlement request not found"));
@@ -79,6 +82,7 @@ public class SettlementService {
         return mapToResponse(savedReq);
     }
 
+    @Transactional
     public SettlementRequestResponse rejectRequest(UUID requestId, String adminUsername, String note){
         SettlementRequest req = settlementRequestRepository.findById(requestId)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "Settlement request not found"));
@@ -91,31 +95,32 @@ public class SettlementService {
         req.setStatus(SettlementStatus.REJECTED);
         req.setProcessedBy(admin);
         req.setProcessedAt(LocalDateTime.now());
-        req.setNote("Rejected");
+        req.setNote(note);
         SettlementRequest savedReq = settlementRequestRepository.save(req);
         return mapToResponse(savedReq);
     }
-
+    @Transactional(readOnly = true)
     public Page<SettlementRequestResponse> getCourierRequests(String username, Pageable pageable){
         User courier = userRepository.findByUsername(username)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "Courier not found"));
         Page<SettlementRequest> requests = settlementRequestRepository.findByCourier(courier, pageable);
         return requests.map(this::mapToResponse);
     }
-
+    @Transactional(readOnly = true)
     public Page<SettlementRequestResponse> getAllRequests(Pageable pageable){
-        Page<SettlementRequest> requests = (Page<SettlementRequest>) settlementRequestRepository.findAll();
+        Page<SettlementRequest> requests = settlementRequestRepository.findAll();
         return requests.map(this::mapToResponse);
 
     }
-
     private SettlementRequestResponse mapToResponse(SettlementRequest req){
+        String processedByUsername = req.getProcessedBy() != null ?
+                req.getProcessedBy().getUsername() : null;
         return new SettlementRequestResponse(
                 req.getId(),
                 req.getCourier().getUsername(),
                 req.getAmount(),
                 req.getStatus().toString(),
-                req.getProcessedBy().getUsername(),
+                processedByUsername,
                 req.getProcessedAt(),
                 req.getNote(),
                 req.getCreatedAt()
