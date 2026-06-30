@@ -6,12 +6,12 @@ import com.delivery.user.UserRepository;
 import com.delivery.wallet.Wallet;
 import com.delivery.wallet.WalletRepository;
 import com.delivery.wallet.WalletService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -108,7 +108,7 @@ public class SettlementService {
     }
     @Transactional(readOnly = true)
     public Page<SettlementRequestResponse> getAllRequests(Pageable pageable){
-        Page<SettlementRequest> requests = settlementRequestRepository.findAll();
+        Page<SettlementRequest> requests = settlementRequestRepository.findAll(pageable);
         return requests.map(this::mapToResponse);
 
     }
