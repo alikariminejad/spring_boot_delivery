@@ -1,6 +1,9 @@
 package com.delivery.settlement;
 
 import com.delivery.dto.SettlementRequestResponse;
+import com.delivery.notification.Notification;
+import com.delivery.notification.NotificationService;
+import com.delivery.notification.NotificationType;
 import com.delivery.user.User;
 import com.delivery.user.UserRepository;
 import com.delivery.wallet.Wallet;
@@ -25,6 +28,7 @@ public class SettlementService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final WalletService walletService;
+    private final NotificationService notificationService;
 
     @Transactional
     public SettlementRequestResponse createRequest(String courierUsername, BigDecimal amount){
@@ -79,6 +83,8 @@ public class SettlementService {
         req.setProcessedAt(LocalDateTime.now());
         req.setNote("Approved");
         SettlementRequest savedReq = settlementRequestRepository.save(req);
+        String notifMessage = "Settlement Request with id:" + requestId + " is approved";
+        notificationService.createNotification(req.getCourier().getUsername(), notifMessage, NotificationType.SETTLEMENT_APPROVED, requestId);
         return mapToResponse(savedReq);
     }
 
@@ -97,6 +103,10 @@ public class SettlementService {
         req.setProcessedAt(LocalDateTime.now());
         req.setNote(note);
         SettlementRequest savedReq = settlementRequestRepository.save(req);
+
+        String notifMessage = "Settlement Request with id:" + requestId + " is rejected";
+        notificationService.createNotification(req.getCourier().getUsername(), notifMessage, NotificationType.SETTLEMENT_REJECTED, requestId);
+
         return mapToResponse(savedReq);
     }
     @Transactional(readOnly = true)

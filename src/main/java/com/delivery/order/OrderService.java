@@ -2,6 +2,8 @@ package com.delivery.order;
 
 import com.delivery.dto.CreateOrderRequest;
 import com.delivery.dto.OrderResponse;
+import com.delivery.notification.NotificationService;
+import com.delivery.notification.NotificationType;
 import com.delivery.user.Role;
 import com.delivery.user.User;
 import com.delivery.user.UserRepository;
@@ -27,6 +29,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final WalletService walletService;
+    private final NotificationService notificationService;
 
 
     @Transactional
@@ -48,17 +51,20 @@ public class OrderService {
         order.setPrice(price);
         order.setStatus(OrderStatus.PENDING);
         Order savedOrder = orderRepository.save(order);
-
-        walletService.processPayment(user, price, savedOrder.getId(), "Payment for order");
+        UUID savedOrderId = savedOrder.getId();
+        walletService.processPayment(user, price, savedOrderId, "Payment for order");
 
 
         OrderStatusHistory orderStatusHistory = new OrderStatusHistory();
-        orderStatusHistory.setOrderId(savedOrder.getId());
+        orderStatusHistory.setOrderId(savedOrderId);
         orderStatusHistory.setFromStatus(null);
         orderStatusHistory.setToStatus(OrderStatus.PENDING);
         orderStatusHistory.setChangedByUserId(user.getId());
         orderStatusHistory.setNote("Order placed");
         orderStatusHistoryRepository.save(orderStatusHistory);
+
+        String notifMessage = "Order with id:" + savedOrderId + " is created.";
+        notificationService.createNotification(username, notifMessage, NotificationType.ORDER_PLACED, savedOrderId);
 
         return mapToResponse(savedOrder);
     }
@@ -172,6 +178,9 @@ public class OrderService {
         orderStatusHistory.setChangedByUserId(admin.getId());
         orderStatusHistoryRepository.save(orderStatusHistory);
 
+        String notifMessage = "Order with id:" + orderId + " is just assigned to you.";
+        notificationService.createNotification(courierName, notifMessage, NotificationType.COURIER_ASSIGNED, orderId);
+
         return mapToResponse(order);
     }
 
@@ -243,7 +252,6 @@ public class OrderService {
             BigDecimal commission = order.getPrice().multiply(BigDecimal.valueOf(0.8));
             walletService.creditCourier(order.getCourier(), commission, orderId);
         }
-        orderRepository.save(order);
 
         OrderStatusHistory orderStatusHistory = new OrderStatusHistory();
         orderStatusHistory.setOrderId(orderId);
@@ -253,6 +261,10 @@ public class OrderService {
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Courier with this name: " + courierUsername +" was not found"));
         orderStatusHistory.setChangedByUserId(courier.getId());
         orderStatusHistoryRepository.save(orderStatusHistory);
+
+        String notifMessage = "Order with id:" + orderId + "'s status change from:" + oldStatus.toString() +" to: " + newStatus.toString();
+        notificationService.createNotification(order.getCustomer().getUsername(), notifMessage, NotificationType.STATUS_CHANGED, orderId);
+        notificationService.createNotification(courierUsername, notifMessage, NotificationType.STATUS_CHANGED, orderId);
 
         return mapToResponse(order);
     }
