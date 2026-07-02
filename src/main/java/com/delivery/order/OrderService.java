@@ -90,6 +90,7 @@ public class OrderService {
         return mapToResponse(order);
     }
 
+    @Transactional
     public OrderResponse cancelOrder(UUID orderId, String username) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order with this id: " + orderId + " not found"));
@@ -154,6 +155,7 @@ public class OrderService {
         return orders.map((order)->mapToResponse(order));
     }
 
+    @Transactional
     public OrderResponse assignOrder(UUID orderId, String courierName, String performedByUsername){
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order with this id: "+orderId+" not found"));
@@ -184,6 +186,7 @@ public class OrderService {
         return mapToResponse(order);
     }
 
+    @Transactional
     public OrderResponse acceptOrder(UUID orderId, String courierUsername){
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found with this id: " + orderId));
@@ -209,6 +212,7 @@ public class OrderService {
         return mapToResponse(order);
     }
 
+    @Transactional
     public OrderResponse rejectOrder(UUID orderId, String courierUsername){
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found with this id: " + orderId));

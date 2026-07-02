@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -42,6 +43,7 @@ public class NotificationService {
         return notifications.map(this::mapToResponse);
     }
 
+    @Transactional
     public void markAsRead(UUID notificationId, String username){
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found"));
@@ -52,6 +54,7 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
+    @Transactional
     public void markAllAsRead(String username){
         User recipient = userRepository.findByUsername(username)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipient not found"));
