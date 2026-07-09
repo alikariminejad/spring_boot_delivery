@@ -1,0 +1,9 @@
+<settings>
+    <mirrors>
+        <mirror>
+            <id>mvnhub</id>
+            <url>https://mvnhub.ir/</url>
+            <mirrorOf>central,*,!my-internal</mirrorOf>
+        </mirror>
+    </mirrors>
+</settings>
