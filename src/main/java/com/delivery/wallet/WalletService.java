@@ -4,6 +4,8 @@ import com.delivery.dto.WalletResponse;
 import com.delivery.user.User;
 import com.delivery.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,7 @@ public class WalletService {
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
 
+    @Cacheable(value = "wallets", key = "#username")
     public WalletResponse getMyWallet(String username){
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"User not found: " + username));
@@ -35,6 +38,7 @@ public class WalletService {
     }
 
     @Transactional
+    @CacheEvict(value = "wallets", key = "#username")
     public WalletResponse topUp(String username, BigDecimal amount){
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"User not found: " + username));
@@ -61,6 +65,7 @@ public class WalletService {
     }
 
     @Transactional
+    @CacheEvict(value = "wallets", key = "#customer.username")
     public void processPayment(User customer, BigDecimal amount, UUID orderId, String description){
         Wallet wallet = walletRepository.findByUser(customer)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet not found"));
@@ -82,6 +87,7 @@ public class WalletService {
     }
 
     @Transactional
+    @CacheEvict(value = "wallets", key = "#courier.username")
     public void creditCourier(User courier, BigDecimal amount, UUID orderId){
         Wallet wallet = walletRepository.findByUser(courier)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "This courier doesn't have a wallet"));
@@ -99,6 +105,7 @@ public class WalletService {
     }
 
     @Transactional
+    @CacheEvict(value = "wallets", key = "#wallet.user.username")
     public void blockFunds(UUID walletId, BigDecimal amount, UUID settlementId){
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet was not found"));
@@ -116,6 +123,7 @@ public class WalletService {
     }
 
     @Transactional
+    @CacheEvict(value = "wallets", key = "#wallet.user.username")
     public void unblockFunds(UUID walletId, BigDecimal amount, UUID settlementId){
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet was not found"));
@@ -136,6 +144,7 @@ public class WalletService {
     }
 
     @Transactional
+    @CacheEvict(value = "wallets", key = "#wallet.user.username")
     public void deductSettlement(UUID walletId, BigDecimal amount, UUID settlementId){
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet was not found"));
