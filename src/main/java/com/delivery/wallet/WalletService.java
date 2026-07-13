@@ -1,6 +1,7 @@
 package com.delivery.wallet;
 
 import com.delivery.dto.WalletResponse;
+import com.delivery.mapper.WalletMapper;
 import com.delivery.user.User;
 import com.delivery.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ public class WalletService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
+    private final WalletMapper walletMapper;
 
     @Cacheable(value = "wallets", key = "#username")
     public WalletResponse getMyWallet(String username){
@@ -28,13 +30,7 @@ public class WalletService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"User not found: " + username));
         Wallet wallet = walletRepository.findByUser(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Wallet not found for this user: " + username));
-        return new WalletResponse(
-                wallet.getId(),
-                wallet.getBalance(),
-                wallet.getBlockedBalance(),
-                wallet.getBalance().subtract(wallet.getBlockedBalance()),
-                username
-        );
+        return walletMapper.toDto(wallet);
     }
 
     @Transactional
@@ -55,13 +51,7 @@ public class WalletService {
         transaction.setDescription("Wallet top-up");
         transactionRepository.save(transaction);
 
-        return new WalletResponse(
-                wallet.getId(),
-                wallet.getBalance(),
-                wallet.getBlockedBalance(),
-                wallet.getBalance().subtract(wallet.getBlockedBalance()),
-                username
-        );
+        return walletMapper.toDto(wallet);
     }
 
     @Transactional
