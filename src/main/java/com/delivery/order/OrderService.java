@@ -2,6 +2,7 @@ package com.delivery.order;
 
 import com.delivery.dto.CreateOrderRequest;
 import com.delivery.dto.OrderResponse;
+import com.delivery.mapper.OrderMapper;
 import com.delivery.notification.NotificationService;
 import com.delivery.notification.NotificationType;
 import com.delivery.user.Role;
@@ -30,6 +31,7 @@ public class OrderService {
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final WalletService walletService;
     private final NotificationService notificationService;
+    private final OrderMapper orderMapper;
 
 
     @Transactional
@@ -66,7 +68,7 @@ public class OrderService {
         String notifMessage = "Order with id:" + savedOrderId + " is created.";
         notificationService.createNotification(username, notifMessage, NotificationType.ORDER_PLACED, savedOrderId);
 
-        return mapToResponse(savedOrder);
+        return orderMapper.toDto(savedOrder);
     }
 
     public Page<OrderResponse> getCustomerOrders(String username, OrderStatus statusFilter, Pageable pageable){
@@ -75,7 +77,7 @@ public class OrderService {
         Page<Order> orders = (statusFilter != null)
                 ? orderRepository.findByCustomerAndStatus(user, statusFilter, pageable)
                 : orderRepository.findByCustomer(user, pageable);
-        return orders.map(order -> mapToResponse(order));
+        return orders.map(order->orderMapper.toDto(order));
     }
 
     public OrderResponse getOrderById(UUID orderId, String username) {
@@ -87,7 +89,7 @@ public class OrderService {
                     "You don't have permission to access this order");
         }
 
-        return mapToResponse(order);
+        return orderMapper.toDto(order);
     }
 
     @Transactional
@@ -114,21 +116,7 @@ public class OrderService {
         orderStatusHistory.setNote("Order canceled by user");
         orderStatusHistoryRepository.save(orderStatusHistory);
 
-        return mapToResponse(cancelledOrder);
-    }
-
-    private OrderResponse mapToResponse(Order order){
-        return new OrderResponse(
-                order.getId(),
-                order.getStatus().toString(),
-                order.getPrice(),
-                order.getOrigin(),
-                order.getDestination(),
-                order.getWeight(),
-                order.getDimensions(),
-                order.getDescription(),
-                order.getCreatedAt()
-        );
+        return orderMapper.toDto(cancelledOrder);
     }
 
     private static final Map<OrderStatus, List<OrderStatus>> ALLOWED_TRANSITIONS =
@@ -152,7 +140,7 @@ public class OrderService {
     public Page<OrderResponse> getAllOrders(OrderStatus statusFilter, Pageable pageable){
         Page<Order> orders = (statusFilter != null) ? orderRepository.findByStatus(statusFilter, pageable)
                 : orderRepository.findAll(pageable);
-        return orders.map((order)->mapToResponse(order));
+        return orders.map((order)->orderMapper.toDto(order));
     }
 
     @Transactional
@@ -182,8 +170,7 @@ public class OrderService {
 
         String notifMessage = "Order with id:" + orderId + " is just assigned to you.";
         notificationService.createNotification(courierName, notifMessage, NotificationType.COURIER_ASSIGNED, orderId);
-
-        return mapToResponse(order);
+        return orderMapper.toDto(order);
     }
 
     @Transactional
@@ -208,8 +195,7 @@ public class OrderService {
                         .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Courier was not found"));
         orderStatusHistory.setChangedByUserId(courier.getId());
         orderStatusHistoryRepository.save(orderStatusHistory);
-
-        return mapToResponse(order);
+        return orderMapper.toDto(order);
     }
 
     @Transactional
@@ -237,8 +223,7 @@ public class OrderService {
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Courier was not found"));
         orderStatusHistory.setChangedByUserId(courier.getId());
         orderStatusHistoryRepository.save(orderStatusHistory);
-
-        return mapToResponse(order);
+        return orderMapper.toDto(order);
     }
 
     @Transactional
@@ -269,14 +254,13 @@ public class OrderService {
         String notifMessage = "Order with id:" + orderId + "'s status change from:" + oldStatus.toString() +" to: " + newStatus.toString();
         notificationService.createNotification(order.getCustomer().getUsername(), notifMessage, NotificationType.STATUS_CHANGED, orderId);
         notificationService.createNotification(courierUsername, notifMessage, NotificationType.STATUS_CHANGED, orderId);
-
-        return mapToResponse(order);
+        return orderMapper.toDto(order);
     }
 
     public Page<OrderResponse> getCourierOrders(String username, Pageable pageable) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         Page<Order> orders=  orderRepository.findByCourier(user, pageable);
-        return orders.map(this::mapToResponse);
+        return orders.map(orderMapper::toDto);
     }
 }

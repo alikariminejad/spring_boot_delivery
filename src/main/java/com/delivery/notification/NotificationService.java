@@ -1,6 +1,7 @@
 package com.delivery.notification;
 
 import com.delivery.dto.NotificationResponse;
+import com.delivery.mapper.NotificationMapper;
 import com.delivery.user.User;
 import com.delivery.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final NotificationMapper notificationMapper;
 
     public NotificationResponse createNotification(String recipientUsername, String message, NotificationType type, UUID referenceId){
         User recipient = userRepository.findByUsername(recipientUsername)
@@ -32,15 +34,14 @@ public class NotificationService {
         notification.setRead(false);
         notification.setCreatedAt(LocalDateTime.now());
         Notification savedNotif = notificationRepository.save(notification);
-
-        return mapToResponse(savedNotif);
+        return notificationMapper.toDto(savedNotif);
     }
 
     public Page<NotificationResponse> getNotifications(String username, Pageable pageable){
         User recipient = userRepository.findByUsername(username)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipient not found"));
         Page<Notification> notifications = notificationRepository.findByRecipient(recipient, pageable);
-        return notifications.map(this::mapToResponse);
+        return notifications.map(notificationMapper::toDto);
     }
 
     @Transactional
@@ -61,14 +62,4 @@ public class NotificationService {
         notificationRepository.markAllAsReadByRecipient(recipient);
     }
 
-    private NotificationResponse mapToResponse(Notification notification){
-        return new NotificationResponse(
-                notification.getId(),
-                notification.getMessage(),
-                notification.getType().toString(),
-                notification.getReferenceId(),
-                notification.isRead(),
-                notification.getCreatedAt()
-        );
-    }
 }

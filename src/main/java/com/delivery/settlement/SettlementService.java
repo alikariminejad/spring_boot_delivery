@@ -1,7 +1,7 @@
 package com.delivery.settlement;
 
 import com.delivery.dto.SettlementRequestResponse;
-import com.delivery.notification.Notification;
+import com.delivery.mapper.SettlementMapper;
 import com.delivery.notification.NotificationService;
 import com.delivery.notification.NotificationType;
 import com.delivery.user.User;
@@ -29,6 +29,7 @@ public class SettlementService {
     private final WalletRepository walletRepository;
     private final WalletService walletService;
     private final NotificationService notificationService;
+    private final SettlementMapper settlementMapper;
 
     @Transactional
     public SettlementRequestResponse createRequest(String courierUsername, BigDecimal amount){
@@ -46,7 +47,7 @@ public class SettlementService {
         SettlementRequest savedReq= settlementRequestRepository.save(req);
 
         walletService.blockFunds(wallet.getId(), amount, savedReq.getId());
-        return mapToResponse(savedReq);
+        return settlementMapper.toDto(savedReq);
     }
 
     @Transactional
@@ -63,7 +64,7 @@ public class SettlementService {
         req.setProcessedAt(LocalDateTime.now());
         walletService.unblockFunds(req.getCourier().getWallet().getId(), req.getAmount(), requestId);
         SettlementRequest savedReq = settlementRequestRepository.save(req);
-        return mapToResponse(savedReq);
+        return settlementMapper.toDto(savedReq);
     }
 
     @Transactional
@@ -85,7 +86,7 @@ public class SettlementService {
         SettlementRequest savedReq = settlementRequestRepository.save(req);
         String notifMessage = "Settlement Request with id:" + requestId + " is approved";
         notificationService.createNotification(req.getCourier().getUsername(), notifMessage, NotificationType.SETTLEMENT_APPROVED, requestId);
-        return mapToResponse(savedReq);
+        return settlementMapper.toDto(savedReq);
     }
 
     @Transactional
@@ -106,34 +107,19 @@ public class SettlementService {
 
         String notifMessage = "Settlement Request with id:" + requestId + " is rejected";
         notificationService.createNotification(req.getCourier().getUsername(), notifMessage, NotificationType.SETTLEMENT_REJECTED, requestId);
-
-        return mapToResponse(savedReq);
+        return settlementMapper.toDto(savedReq);
     }
     @Transactional(readOnly = true)
     public Page<SettlementRequestResponse> getCourierRequests(String username, Pageable pageable){
         User courier = userRepository.findByUsername(username)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND, "Courier not found"));
         Page<SettlementRequest> requests = settlementRequestRepository.findByCourier(courier, pageable);
-        return requests.map(this::mapToResponse);
+        return requests.map(settlementMapper::toDto);
     }
     @Transactional(readOnly = true)
     public Page<SettlementRequestResponse> getAllRequests(Pageable pageable){
         Page<SettlementRequest> requests = settlementRequestRepository.findAll(pageable);
-        return requests.map(this::mapToResponse);
+        return requests.map(settlementMapper::toDto);
 
-    }
-    private SettlementRequestResponse mapToResponse(SettlementRequest req){
-        String processedByUsername = req.getProcessedBy() != null ?
-                req.getProcessedBy().getUsername() : null;
-        return new SettlementRequestResponse(
-                req.getId(),
-                req.getCourier().getUsername(),
-                req.getAmount(),
-                req.getStatus().toString(),
-                processedByUsername,
-                req.getProcessedAt(),
-                req.getNote(),
-                req.getCreatedAt()
-        );
     }
 }
