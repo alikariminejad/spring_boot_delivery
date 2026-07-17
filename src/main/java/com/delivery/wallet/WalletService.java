@@ -24,6 +24,7 @@ public class WalletService {
     private final UserRepository userRepository;
     private final WalletMapper walletMapper;
 
+    @Transactional(readOnly = true)
     @Cacheable(value = "wallets", key = "#username")
     public WalletResponse getMyWallet(String username){
         User user = userRepository.findByUsername(username)
