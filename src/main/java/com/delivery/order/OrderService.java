@@ -10,6 +10,7 @@ import com.delivery.user.User;
 import com.delivery.user.UserRepository;
 import com.delivery.wallet.WalletService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -30,8 +31,8 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final WalletService walletService;
-    private final NotificationService notificationService;
     private final OrderMapper orderMapper;
+    private final RabbitTemplate rabbitTemplate;
 
 
     @Transactional
@@ -66,6 +67,7 @@ public class OrderService {
         orderStatusHistoryRepository.save(orderStatusHistory);
 
         String notifMessage = "Order with id:" + savedOrderId + " is created.";
+        rabbitTemplate.
         notificationService.createNotification(username, notifMessage, NotificationType.ORDER_PLACED, savedOrderId);
 
         return orderMapper.toDto(savedOrder);
