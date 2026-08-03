@@ -1,10 +1,13 @@
 package com.delivery.order;
 
+import com.delivery.config.RabbitMQConfig;
 import com.delivery.dto.CreateOrderRequest;
 import com.delivery.dto.OrderResponse;
+import com.delivery.event.CourierAssignedEvent;
+import com.delivery.event.OrderCancelledEvent;
+import com.delivery.event.OrderPlacedEvent;
+import com.delivery.event.OrderStatusChangedEvent;
 import com.delivery.mapper.OrderMapper;
-import com.delivery.notification.NotificationService;
-import com.delivery.notification.NotificationType;
 import com.delivery.user.Role;
 import com.delivery.user.User;
 import com.delivery.user.UserRepository;
@@ -66,9 +69,13 @@ public class OrderService {
         orderStatusHistory.setNote("Order placed");
         orderStatusHistoryRepository.save(orderStatusHistory);
 
-        String notifMessage = "Order with id:" + savedOrderId + " is created.";
-        rabbitTemplate.
-        notificationService.createNotification(username, notifMessage, NotificationType.ORDER_PLACED, savedOrderId);
+        OrderPlacedEvent event = new OrderPlacedEvent();
+        event.setOrderId(savedOrderId);
+        event.setCustomerId(user.getId());
+        event.setCustomerUsername(user.getUsername());
+        event.setPrice(savedOrder.getPrice());
+        event.setCreatedAt(savedOrder.getCreatedAt());
+        rabbitTemplate.convertAndSend(RabbitMQConfig.ORDER_EXCHANGE, "order.placed", event);
 
         return orderMapper.toDto(savedOrder);
     }
@@ -118,6 +125,13 @@ public class OrderService {
         orderStatusHistory.setNote("Order canceled by user");
         orderStatusHistoryRepository.save(orderStatusHistory);
 
+        OrderCancelledEvent event = new OrderCancelledEvent();
+        event.setOrderId(orderId);
+        event.setCustomerId(order.getCustomer().getId());
+        event.setCustomerUsername(username);
+        event.setCancelledAt(orderStatusHistory.getCreatedAt());
+        rabbitTemplate.convertAndSend(RabbitMQConfig.ORDER_EXCHANGE, "order.cancelled", event);
+
         return orderMapper.toDto(cancelledOrder);
     }
 
@@ -159,7 +173,7 @@ public class OrderService {
         }
         order.setCourier(courier);
         order.setStatus(OrderStatus.ASSIGNED);
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
 
         OrderStatusHistory orderStatusHistory = new OrderStatusHistory();
         orderStatusHistory.setOrderId(orderId);
@@ -170,8 +184,13 @@ public class OrderService {
         orderStatusHistory.setChangedByUserId(admin.getId());
         orderStatusHistoryRepository.save(orderStatusHistory);
 
-        String notifMessage = "Order with id:" + orderId + " is just assigned to you.";
-        notificationService.createNotification(courierName, notifMessage, NotificationType.COURIER_ASSIGNED, orderId);
+        CourierAssignedEvent event = new CourierAssignedEvent();
+        event.setOrderId(savedOrder.getId());
+        event.setCourierId(courier.getId());
+        event.setCourierUsername(courier.getUsername());
+        event.setAssignedAt(orderStatusHistory.getCreatedAt());
+        rabbitTemplate.convertAndSend(RabbitMQConfig.ORDER_EXCHANGE, "order.courier.assigned", event);
+
         return orderMapper.toDto(order);
     }
 
@@ -253,9 +272,17 @@ public class OrderService {
         orderStatusHistory.setChangedByUserId(courier.getId());
         orderStatusHistoryRepository.save(orderStatusHistory);
 
-        String notifMessage = "Order with id:" + orderId + "'s status change from:" + oldStatus.toString() +" to: " + newStatus.toString();
-        notificationService.createNotification(order.getCustomer().getUsername(), notifMessage, NotificationType.STATUS_CHANGED, orderId);
-        notificationService.createNotification(courierUsername, notifMessage, NotificationType.STATUS_CHANGED, orderId);
+        OrderStatusChangedEvent event = new OrderStatusChangedEvent();
+        event.setOrderId(orderId);
+        event.setCustomerId(order.getCustomer().getId());
+        event.setCustomerUsername(order.getCustomer().getUsername());
+        event.setCourierId(courier.getId());
+        event.setCourierUsername(courier.getUsername());
+        event.setOldStatus(oldStatus.name());
+        event.setNewStatus(newStatus.name());
+        event.setChangedAt(orderStatusHistory.getCreatedAt());
+        rabbitTemplate.convertAndSend(RabbitMQConfig.ORDER_EXCHANGE, "order.status.changed", event);
+
         return orderMapper.toDto(order);
     }
 

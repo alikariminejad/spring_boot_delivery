@@ -12,7 +12,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrderPlacedEvent {
-    private UUID oderId;
+    private UUID orderId;
     private UUID customerId;
     private String customerUsername;
     private BigDecimal price;

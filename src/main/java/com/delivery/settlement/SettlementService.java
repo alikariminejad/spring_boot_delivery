@@ -1,6 +1,10 @@
 package com.delivery.settlement;
 
+import com.delivery.config.RabbitMQConfig;
 import com.delivery.dto.SettlementRequestResponse;
+import com.delivery.event.SettlementApprovedEvent;
+import com.delivery.event.SettlementRejectedEvent;
+import com.delivery.event.SettlementRequestedEvent;
 import com.delivery.mapper.SettlementMapper;
 import com.delivery.notification.NotificationService;
 import com.delivery.notification.NotificationType;
@@ -10,6 +14,7 @@ import com.delivery.wallet.Wallet;
 import com.delivery.wallet.WalletRepository;
 import com.delivery.wallet.WalletService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -28,8 +33,8 @@ public class SettlementService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final WalletService walletService;
-    private final NotificationService notificationService;
     private final SettlementMapper settlementMapper;
+    private final RabbitTemplate rabbitTemplate;
 
     @Transactional
     public SettlementRequestResponse createRequest(String courierUsername, BigDecimal amount){
@@ -47,6 +52,14 @@ public class SettlementService {
         SettlementRequest savedReq= settlementRequestRepository.save(req);
 
         walletService.blockFunds(wallet.getId(), amount, savedReq.getId());
+
+        SettlementRequestedEvent event = new SettlementRequestedEvent();
+        event.setSettlementId(req.getId());
+        event.setCourierId(courier.getId());
+        event.setCourierUsername(courier.getUsername());
+        event.setAmount(amount);
+        event.setRequestedAt(req.getCreatedAt());
+        rabbitTemplate.convertAndSend(RabbitMQConfig.SETTLEMENT_EXCHANGE, "settlement.requested", event);
         return settlementMapper.toDto(savedReq);
     }
 
@@ -84,8 +97,14 @@ public class SettlementService {
         req.setProcessedAt(LocalDateTime.now());
         req.setNote("Approved");
         SettlementRequest savedReq = settlementRequestRepository.save(req);
-        String notifMessage = "Settlement Request with id:" + requestId + " is approved";
-        notificationService.createNotification(req.getCourier().getUsername(), notifMessage, NotificationType.SETTLEMENT_APPROVED, requestId);
+
+        SettlementApprovedEvent event = new SettlementApprovedEvent();
+        event.setSettlementId(requestId);
+        event.setCourierId(req.getCourier().getId());
+        event.setCourierUsername(req.getCourier().getUsername());
+        event.setAmount(req.getAmount());
+        event.setApprovedAt(savedReq.getProcessedAt());
+        rabbitTemplate.convertAndSend(RabbitMQConfig.SETTLEMENT_EXCHANGE, "settlement.approved", event);
         return settlementMapper.toDto(savedReq);
     }
 
@@ -105,8 +124,14 @@ public class SettlementService {
         req.setNote(note);
         SettlementRequest savedReq = settlementRequestRepository.save(req);
 
-        String notifMessage = "Settlement Request with id:" + requestId + " is rejected";
-        notificationService.createNotification(req.getCourier().getUsername(), notifMessage, NotificationType.SETTLEMENT_REJECTED, requestId);
+        SettlementRejectedEvent event = new SettlementRejectedEvent();
+        event.setSettlementId(requestId);
+        event.setCourierId(req.getCourier().getId());
+        event.setCourierUsername(req.getCourier().getUsername());
+        event.setAmount(req.getAmount());
+        event.setReason(note);
+        event.setRejectedAt(req.getProcessedAt());
+        rabbitTemplate.convertAndSend(RabbitMQConfig.SETTLEMENT_EXCHANGE, "settlement.rejected", event);
         return settlementMapper.toDto(savedReq);
     }
     @Transactional(readOnly = true)

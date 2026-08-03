@@ -17,7 +17,6 @@ public class RabbitMQConfig {
     public static final String SETTLEMENT_EXCHANGE = "settlement.exchange";
     public static final String NOTIFICATION_QUEUE = "notification.queue";
 
-    // order events
     @Bean
     public Queue notificationQueue(){
         return new Queue(NOTIFICATION_QUEUE, true);
