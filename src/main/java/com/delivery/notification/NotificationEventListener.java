@@ -43,8 +43,7 @@ public class NotificationEventListener {
 
     @RabbitListener(queues = RabbitMQConfig.NOTIFICATION_QUEUE)
     public void handleSettlementRequested(SettlementRequestedEvent event) {
-        // Admin notification? For now we can notify admin(s) – you could hardcode an admin username or just skip.
-        // We'll skip for now, but you can later create an admin notification.
+        // We'll skip for now, but we can later create an admin notification.
     }
 
     @RabbitListener(queues = RabbitMQConfig.NOTIFICATION_QUEUE)

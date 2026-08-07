@@ -4,13 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class OrderStatusChangedEvent {
+public class OrderStatusChangedEvent implements Serializable {
     private UUID orderId;
     private UUID customerId;
     private String customerUsername;
