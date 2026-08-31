@@ -1,4 +1,4 @@
-package com.delivery.notification;
+package com.delivery.notification.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
