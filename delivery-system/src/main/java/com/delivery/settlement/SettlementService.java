@@ -6,8 +6,6 @@ import com.delivery.event.SettlementApprovedEvent;
 import com.delivery.event.SettlementRejectedEvent;
 import com.delivery.event.SettlementRequestedEvent;
 import com.delivery.mapper.SettlementMapper;
-import com.delivery.notification.NotificationService;
-import com.delivery.notification.NotificationType;
 import com.delivery.user.User;
 import com.delivery.user.UserRepository;
 import com.delivery.wallet.Wallet;

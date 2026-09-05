@@ -1,6 +1,0 @@
-package com.delivery.notification;
-
-public enum NotificationType {
-    ORDER_PLACED, STATUS_CHANGED, COURIER_ASSIGNED, SETTLEMENT_APPROVED,
-    SETTLEMENT_REJECTED, SETTLEMENT_REQUESTED, WALLET_TOPUP
-}
