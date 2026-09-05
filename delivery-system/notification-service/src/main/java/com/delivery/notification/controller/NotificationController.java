@@ -29,9 +29,9 @@ public class NotificationController{
     }
 
     @PutMapping("/{id}/read")
-    public ResponseEntity<NotificationResponse> markAsRead(@RequestParam UUID notificationId,
+    public ResponseEntity<NotificationResponse> markAsRead(@PathVariable UUID id,
                                                            @RequestHeader("X-User-Username") String username){
-        NotificationResponse notificationResponse = notificationService.markAsRead(notificationId, username);
+        NotificationResponse notificationResponse = notificationService.markAsRead(id, username);
         return ResponseEntity.ok(notificationResponse);
     }
 
