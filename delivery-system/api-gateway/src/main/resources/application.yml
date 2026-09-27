@@ -1,0 +1,27 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+          routes:
+            - id: monolith-service
+              uri: http://app:8080   # service name in docker-compose
+              predicates:
+                - Path=/api/orders/**,/api/auth/**,/api/wallet/**,/api/settlement/**,/api/admin/**,/api/courier/**
+            - id: notification-service
+              uri: http://notification-service:8081
+              predicates:
+                - Path=/api/notifications/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    health:
+      show-details: always
